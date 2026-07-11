@@ -11,3 +11,15 @@ In this part I made database tables. I created user, student, company, jobpositi
 1) made tables using sqlalchemy
 2) defined relationships
 3) pre created ADMIN programmatically
+
+Milestone 2
+
+In this part I implemented authentication and role-based access. Students and companies can register, users can log in using JWT authentication, and they are redirected to their respective dashboards based on their roles.
+
+1) implemented JWT authentication
+2) student registration
+3) company registration
+4) role-based login
+5) company login restricted until admin approval
+6) pre-defined admin login
+
