@@ -45,11 +45,11 @@ class Company(db.Model):
     hr_contact = db.Column(db.String(100))
     website = db.Column(db.String(200))
     approval_status = db.Column(db.String(15) , nullable = False , default = 'pending')
-    industry = db.Column(db.String(15) , nullable = False)
+    industry = db.Column(db.String(100) , nullable = False)
 
     user = db.relationship('User')
 
-    drives = db.relationship('Drive',
+    job_positions = db.relationship('JobPosition',
                              backref='company',
                              cascade="all, delete")
     
@@ -71,22 +71,22 @@ class JobPosition(db.Model):
     salary = db.Column(db.Integer)
     skills_req = db.Column(db.String(200))
     exp_req = db.Column(db.Integer)
-    drive_approval_status = db.Column(db.String(15) , nullable = False , default = 'pending')
+    job_approval_status = db.Column(db.String(15) , nullable = False , default = 'pending')
     current_status = db.Column(db.String(15) , nullable = False , default = 'inactive')
 
     applications = db.relationship('Application',
-                                   backref='drive',
+                                   backref='job_position',
                                    cascade="all, delete")
     
     placements = db.relationship('Placement',
-                                 backref='drive',
+                                 backref='job_position',
                                  cascade="all, delete")
 
 class Application(db.Model):
     id = db.Column(db.Integer , primary_key = True)
     student_id = db.Column(db.Integer , db.ForeignKey('student.id') , nullable = False)
     company_id = db.Column(db.Integer , db.ForeignKey('company.id') , nullable = False)
-    drive_id = db.Column(db.Integer , db.ForeignKey('drive.id'), nullable = False)
+    job_position_id = db.Column(db.Integer , db.ForeignKey('job_position.id'), nullable = False)
     application_date = db.Column(db.DateTime , default = datetime.utcnow)
     status = db.Column(db.String(15) , nullable = False , default = 'applied')
 
@@ -95,7 +95,7 @@ class Placement(db.Model):
     application_id = db.Column(db.Integer, db.ForeignKey('application.id') , nullable = False)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id') , nullable = False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id') , nullable = False)
-    drive_id = db.Column(db.Integer, db.ForeignKey('drive.id') , nullable = False)
-    placement_date = db.Column(db.Date, default = datetime.utcnow)
+    job_position_id = db.Column(db.Integer, db.ForeignKey('job_position.id') , nullable = False)
+    placement_date = db.Column(db.Date, default=lambda: datetime.utcnow().date())
 
     application = db.relationship('Application')
