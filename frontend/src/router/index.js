@@ -14,7 +14,11 @@ import StudentDetails from "../views/StudentDetails.vue";
 import JobManagement from "../views/JobManagement.vue";
 import JobDetails from "../views/JobDetails.vue";
 import ApplicationManagement from "../views/ApplicationsManagement.vue";
-import PlacementManagement from "../views/PlacementManagement.vue"
+import PlacementManagement from "../views/PlacementManagement.vue";
+import CreateJob from "../views/CreateJob.vue";
+import CompanyJobDetails from "../views/CompanyJobDetails.vue";
+import CompanyApplications from "../views/CompanyApplications.vue";
+import CompanyApplicationDetails from "../views/CompanyApplicationDetails.vue"
 
 const routes = [
   {
@@ -91,6 +95,26 @@ const routes = [
     path: "/admin/placements",
     component: PlacementManagement,
   },
+
+  {
+    path: "/company/create-job",
+    component: CreateJob
+  },
+
+  {
+    path: "/company/job/:id",
+    component: CompanyJobDetails
+  },
+
+  {
+    path: "/company/job/:id/applications",
+    component: CompanyApplications
+  },
+
+  {
+    path: "/company/application/:id",
+    component: CompanyApplicationDetails
+  }
 
 ];
 

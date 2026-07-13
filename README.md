@@ -60,3 +60,40 @@ Issues Encountered and Fixes
 
 6) Faced issues integrating frontend pages with backend APIs.
    Fixed by testing endpoints individually and ensuring proper request and response handling.
+
+Milestone 4
+
+In this part I implemented the complete company module. Companies can create and manage job postings, view applicants, review resumes and update application status.
+
+1) company dashboard with statistics
+2) create new job posting
+3) view all company job postings
+5) close and reopen jobs
+6) company job details page
+7) view applicants for each job
+8) applicant details page
+9) resume upload and resume viewing
+10) shortlist and reject applicants
+11) application status updates
+16) protected company routes using JWT
+17) file upload support for student resumes
+
+Issues Encountered and Fixes
+
+1) Resume upload was not working because the file was not being sent in FormData.
+   Fixed by using multipart/form-data and appending the selected PDF file before sending the request.
+
+2) Resume was showing as "No Resume" after registration.
+   Fixed by saving the uploaded PDF inside the uploads/resumes folder and storing the filename in the database.
+
+3) Company applicants page displayed no records although applications existed.
+   Fixed by correcting the application query and matching student IDs with the Student table.
+
+4) Applicant details page failed for some records because Student.query.get() returned None.
+   Fixed by recreating the database with valid student records and removing inconsistent seeded data.
+
+5) Resume button opened a 404 page when no resume was available.
+   Fixed by displaying "No Resume Uploaded" instead of showing the View Resume button.
+
+6) Company routes were accessible without proper authorization checks.
+   Fixed by verifying the logged-in company using JWT before returning job and applicant details.

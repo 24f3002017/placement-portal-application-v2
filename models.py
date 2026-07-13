@@ -89,6 +89,11 @@ class Application(db.Model):
     job_position_id = db.Column(db.Integer , db.ForeignKey('job_position.id'), nullable = False)
     application_date = db.Column(db.DateTime , default = datetime.utcnow)
     status = db.Column(db.String(15) , nullable = False , default = 'applied')
+    feedback = db.Column(db.Text)
+    interview_date = db.Column(db.Date)
+    interview_time = db.Column(db.String(20))
+    interview_mode = db.Column(db.String(20))
+    interview_location = db.Column(db.String(200))
 
 class Placement(db.Model):
     id = db.Column(db.Integer , primary_key = True)

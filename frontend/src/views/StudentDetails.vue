@@ -51,10 +51,24 @@
                 </tr>
   
                 <tr>
-                  <th>Resume</th>
-                  <td>{{ student.resume }}</td>
-                </tr>
-  
+<th>Resume</th>
+<td>
+    <a
+        v-if="student.resume"
+        :href="`http://127.0.0.1:5000/uploads/resumes/${student.resume}`"
+        target="_blank"
+        class="btn btn-primary btn-sm"
+    >
+        View Resume
+    </a>
+
+    <span v-else class="text-muted">
+        No Resume
+    </span>
+
+</td>
+
+</tr>
                 <tr>
                   <th>Status</th>
   

@@ -87,12 +87,12 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Resume</label>
+              <label class="form-label">Resume (PDF)</label>
               <input
-                type="text"
+                type="file"
                 class="form-control"
-                v-model="resume"
-                placeholder="Resume URL or filename"
+                accept=".pdf"
+                @change="handleResumeUpload"
               >
             </div>
 
@@ -144,46 +144,84 @@ const last_name = ref("")
 const skills = ref("")
 const cgpa = ref("")
 const experience = ref("")
-const resume = ref("")
 const education = ref("")
+const resume = ref(null)
 const message = ref("")
+
+function handleResumeUpload(event) {
+    resume.value = event.target.files[0]
+    console.log("Selected file:", resume.value)
+}
 
 async function registerStudent() {
 
   try {
 
-    const response = await axios.post(
-      "http://127.0.0.1:5000/api/student/register",
-      {
-        email: email.value,
-        password: password.value,
-        roll_no: roll_no.value,
-        first_name: first_name.value,
-        last_name: last_name.value,
-        skills: skills.value,
-        cgpa: cgpa.value,
-        experience: experience.value,
-        resume: resume.value,
-        education: education.value
-      }
-    )
+    const formData = new FormData()
 
-    alert(response.data.message)
+    formData.append("email", email.value)
 
-    router.push("/login")
+    formData.append("password", password.value)
+
+    formData.append("roll_no", roll_no.value)
+
+    formData.append("first_name", first_name.value)
+
+    formData.append("last_name", last_name.value)
+
+    formData.append("skills", skills.value)
+
+    formData.append("cgpa", cgpa.value)
+
+    formData.append("experience", experience.value)
+
+    formData.append("education", education.value)
+
+    if (resume.value) {
+
+formData.append("resume", resume.value)
+
+}
+
+const response = await axios.post(
+
+"http://127.0.0.1:5000/api/student/register",
+
+formData,
+
+{
+
+  headers: {
+
+    "Content-Type": "multipart/form-data"
 
   }
 
-  catch(error) {
+}
 
-    if(error.response){
-      message.value = error.response.data.message
-    }
-    else{
-      message.value = "Server error"
-    }
+)
 
-  }
+alert(response.data.message)
+
+router.push("/login")
+
+}
+
+catch(error) {
+
+if (error.response) {
+
+message.value = error.response.data.message
+
+}
+
+else {
+
+message.value = "Server error"
+
+}
+
+}
 
 }
 

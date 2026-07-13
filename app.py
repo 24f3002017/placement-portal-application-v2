@@ -3,7 +3,10 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager , create_access_token , jwt_required , get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, Admin , User , Student , Company , JobPosition , Application , Placement
-from datetime import datetime
+from datetime import datetime , date
+from flask import send_from_directory
+import os
+from werkzeug.utils import secure_filename
 
 ADMIN_EMAIL = "admin@gmail.com"
 ADMIN_PASSWORD = "admin123"
@@ -13,6 +16,9 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "placement_portal_secret_key"
 app.config["JWT_SECRET_KEY"] = "placement_portal_jwt_secret"
 
+UPLOAD_FOLDER = "uploads/resumes"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
 CORS(app)
 jwt = JWTManager(app)
 
@@ -20,6 +26,8 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 with app.app_context():
     db.create_all()
@@ -34,7 +42,7 @@ with app.app_context():
 
         admin = Admin(user_id=admin_user.id)
         db.session.add(admin)
-        db.session.commit()
+        db.session.commit()    
 
 def check_user_status():
 
@@ -61,7 +69,8 @@ def home():
 @app.route("/api/student/register", methods=["POST"])
 def student_register():
     
-    data = request.get_json()
+    data = request.form
+
     email = data.get("email")
     password = data.get("password")
     roll_no = data.get("roll_no")
@@ -70,13 +79,33 @@ def student_register():
     skills = data.get("skills")
     cgpa = data.get("cgpa")
     experience = data.get("experience")
-    resume = data.get("resume")
     education = data.get("education")
+    resume_file = request.files.get("resume")
+    print("Resume file:", resume_file)
 
     existing_user = User.query.filter_by(email=email).first()
 
     if existing_user:
         return jsonify({"message": "Email already registered"}), 400
+    
+    resume_filename = ""
+
+    if resume_file:
+        if not resume_file.filename.lower().endswith(".pdf"):
+            return jsonify({
+                "message": "Only PDF resumes are allowed."
+            }), 400
+        resume_filename = secure_filename(
+            f"{roll_no}_{resume_file.filename}"
+        )
+        print("Filename:", resume_filename)
+
+        resume_file.save(
+            os.path.join(
+                app.config["UPLOAD_FOLDER"],
+                resume_filename
+            )
+        )    
     
     try:
         hashed_password = generate_password_hash(password)
@@ -97,9 +126,9 @@ def student_register():
             skills=skills,
             cgpa=cgpa,
             experience=experience,
-            resume=resume,
+            resume=resume_filename,
             education=education
-        )
+        ) 
         db.session.add(new_student)
         db.session.commit()
 
@@ -109,9 +138,54 @@ def student_register():
     
     except Exception as e:
         db.session.rollback()
-        return jsonify({
-            "message": "Registration failed",
-        }), 500
+        print("ERROR:", e)
+        raise
+
+@app.route("/api/student/upload_resume", methods=["POST"])
+@jwt_required()
+def upload_resume():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    if "resume" not in request.files:
+        return jsonify({"message": "No file selected"}), 400
+
+    file = request.files["resume"]
+
+    if file.filename == "":
+        return jsonify({"message": "No file selected"}), 400
+
+    if not file.filename.lower().endswith(".pdf"):
+        return jsonify({"message": "Only PDF files are allowed"}), 400
+
+    filename = secure_filename(
+        f"{student.roll_no}_{file.filename}"
+    )
+
+    file.save(
+        os.path.join(
+            app.config["UPLOAD_FOLDER"],
+            filename
+        )
+    )
+
+    student.resume = filename
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Resume uploaded successfully."
+    }), 200
     
 @app.route("/api/company/register", methods=["POST"])
 def company_register():
@@ -155,10 +229,11 @@ def company_register():
             "message": "Company registered successfully"
         }), 201
     
-    except Exception:
+    except Exception as e:
         db.session.rollback()
+        print(e)
         return jsonify({
-            "message": "Registration failed"
+            "message": str(e)
         }), 500
     
 @app.route("/api/login", methods=["POST"])
@@ -740,6 +815,371 @@ def get_all_placements():
         })
 
     return jsonify(result), 200
+
+@app.route("/api/company/dashboard", methods=["GET"])
+@jwt_required()
+def company_dashboard():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    total_jobs = JobPosition.query.filter_by(company_id=company.id).count()
+
+    total_applications = Application.query.filter_by(company_id=company.id).count()
+
+    shortlisted = Application.query.filter_by(
+        company_id=company.id,
+        status="shortlisted"
+    ).count()
+
+    selected = Placement.query.filter_by(
+        company_id=company.id,
+    ).count()
+
+    jobs = JobPosition.query.filter_by(company_id=company.id).all()
+
+    recent_jobs = []
+
+    for job in jobs:
+
+        applicants = Application.query.filter_by(
+            job_position_id=job.id
+        ).count()
+
+        recent_jobs.append({
+
+            "id": job.id,
+            "title": job.title,
+            "deadline": job.deadline.strftime("%d-%m-%Y"),
+            "status": job.current_status,
+            "applicants": applicants
+
+        })
+
+    return jsonify({
+
+        "company_name": company.name,
+        "total_jobs": total_jobs,
+        "total_applications": total_applications,
+        "shortlisted": shortlisted,
+        "selected": selected,
+        "recent_jobs": recent_jobs
+
+    }), 200
+
+@app.route("/api/company/job", methods=["POST"])
+@jwt_required()
+def create_job():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    data = request.get_json()
+
+    job = JobPosition(
+
+        company_id=company.id,
+        title=data["title"],
+        description=data["description"],
+        eligibility=data["eligibility"],
+        deadline=datetime.strptime(
+            data["deadline"],
+            "%Y-%m-%d"
+        ).date(),
+        salary=data["salary"],
+        skills_req=data["skills_req"],
+        exp_req=data["exp_req"],
+
+        job_approval_status="pending",
+        current_status="inactive"
+
+    )
+
+    db.session.add(job)
+    db.session.commit()
+
+    return jsonify(
+        {"message": "Job created successfully"}
+    ), 201
+
+@app.route("/api/company/job/<int:id>", methods=["GET"])
+@jwt_required()
+def company_job_details(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    job = JobPosition.query.filter_by(
+        id=id,
+        company_id=company.id
+    ).first()
+
+    if not job:
+        return jsonify({"message": "Job not found"}), 404
+
+    applicants = Application.query.filter_by(
+        job_position_id=job.id
+    ).count()
+
+    return jsonify({
+
+        "id": job.id,
+        "title": job.title,
+        "description": job.description,
+        "eligibility": job.eligibility,
+        "salary": job.salary,
+        "skills_req": job.skills_req,
+        "exp_req": job.exp_req,
+        "deadline": job.deadline.strftime("%d-%m-%Y"),
+        "approval_status": job.job_approval_status,
+        "status": job.current_status,
+        "applicants": applicants
+
+    }), 200
+
+@app.route("/api/company/job/<int:id>/status", methods=["PUT"])
+@jwt_required()
+def change_job_status(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    job = JobPosition.query.filter_by(
+        id=id,
+        company_id=company.id
+    ).first()
+
+    if not job:
+        return jsonify({"message": "Job not found"}), 404
+
+    if job.job_approval_status != "approved":
+        return jsonify({
+            "message": "Job is not approved by admin"
+        }), 400
+
+    if job.current_status == "active":
+        job.current_status = "inactive"
+    else:
+        job.current_status = "active"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Job status updated successfully",
+        "current_status": job.current_status
+    }), 200
+
+@app.route("/api/company/job/<int:id>/applicants", methods=["GET"])
+@jwt_required()
+def company_job_applicants(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    job = JobPosition.query.filter_by(
+        id=id,
+        company_id=company.id
+    ).first()
+
+    if not job:
+        return jsonify({"message": "Job not found"}), 404
+
+    applications = Application.query.filter_by(
+        job_position_id=job.id
+    ).all()
+
+    result = []
+
+    for application in applications:
+
+        student = Student.query.get(application.student_id)
+
+        result.append({
+
+            "application_id": application.id,
+            "student_id": student.id,
+            "name": student.first_name + " " + student.last_name,
+            "roll_no": student.roll_no,
+            "cgpa": student.cgpa,
+            "status": application.status
+
+        })
+
+    return jsonify(result), 200
+
+@app.route("/api/company/application/<int:id>", methods=["GET"])
+@jwt_required()
+def company_application_details(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    application = Application.query.get(id)
+
+    if not application:
+        return jsonify({"message": "Application not found"}), 404
+
+    job = JobPosition.query.filter_by(
+        id=application.job_position_id,
+        company_id=company.id
+    ).first()
+
+    if not job:
+        return jsonify({"message": "Unauthorized"}), 403
+
+    student = Student.query.get(application.student_id)
+
+    return jsonify({
+
+        "application_id": application.id,
+
+        "name": student.first_name + " " + student.last_name,
+
+        "roll_no": student.roll_no,
+
+        "email": student.user.email,
+
+        "cgpa": student.cgpa,
+
+        "skills": student.skills,
+
+        "resume": student.resume,
+
+        "status": application.status,
+
+        "feedback": application.feedback,
+
+        "interview_date": application.interview_date,
+
+        "interview_time": application.interview_time,
+
+        "interview_mode": application.interview_mode,
+
+        "interview_location": application.interview_location
+
+    }), 200
+
+@app.route("/api/company/application/<int:id>/status", methods=["PUT"])
+@jwt_required()
+def update_application_status(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    application = Application.query.get(id)
+
+    if not application:
+        return jsonify({"message": "Application not found"}), 404
+
+    job = JobPosition.query.filter_by(
+        id=application.job_position_id,
+        company_id=company.id
+    ).first()
+
+    if not job:
+        return jsonify({"message": "Unauthorized"}), 403
+
+    data = request.get_json()
+
+    feedback = data.get("feedback")
+    
+    if "feedback" in data:
+        
+        if not data["feedback"].strip():
+            return jsonify({
+                "message": "Feedback is required."
+            }), 400
+
+    application.status = data.get("status" , application.status)
+    application.feedback = data.get("feedback", application.feedback)
+
+    if data.get("interview_date"):
+        application.interview_date = datetime.strptime(
+            data.get("interview_date"), "%Y-%m-%d"
+        ).date()
+        
+    application.interview_time = data.get("interview_time")
+
+    application.interview_mode = data.get("interview_mode")
+
+    application.interview_location = data.get("interview_location")
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Application status updated successfully."
+    }), 200
+
+@app.route("/uploads/resumes/<filename>")
+def view_resume(filename):
+
+    return send_from_directory(
+        app.config["UPLOAD_FOLDER"],
+        filename
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
