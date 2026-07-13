@@ -7,6 +7,14 @@ import CompanyRegister from "../views/CompanyRegister.vue";
 import StudentDashboard from "../views/StudentDashboard.vue";
 import CompanyDashboard from "../views/CompanyDashboard.vue";
 import AdminDashboard from "../views/AdminDashboard.vue";
+import CompanyManagement from "../views/CompanyManagement.vue";
+import CompanyDetails from "../views/CompanyDetails.vue";
+import StudentManagement from "../views/StudentManagement.vue";
+import StudentDetails from "../views/StudentDetails.vue";
+import JobManagement from "../views/JobManagement.vue";
+import JobDetails from "../views/JobDetails.vue";
+import ApplicationManagement from "../views/ApplicationsManagement.vue";
+import PlacementManagement from "../views/PlacementManagement.vue"
 
 const routes = [
   {
@@ -43,11 +51,75 @@ const routes = [
     path: "/admin-dashboard",
     component: AdminDashboard,
   },
+
+  {
+    path: "/admin/companies",
+    component: CompanyManagement,
+  },
+
+  {
+    path: "/admin/company/:id",
+    component: CompanyDetails,
+  },
+
+  {
+    path: "/admin/students",
+    component: StudentManagement,
+  },
+
+  {
+    path: "/admin/student/:id",
+    component: StudentDetails,
+  },
+
+  {
+    path: "/admin/jobs",
+    component: JobManagement
+  },
+
+  {
+    path: "/admin/job/:id",
+    component: JobDetails
+  },
+
+  {
+    path: "/admin/applications",
+    component: ApplicationManagement,
+  },
+
+  {
+    path: "/admin/placements",
+    component: PlacementManagement,
+  },
+
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem("token");
+
+  const publicPages = [
+    "/",
+    "/login",
+    "/student-register",
+    "/company-register",
+  ];
+
+  if (publicPages.includes(to.path)) {
+    return next();
+  }
+
+  if (!token) {
+    return next("/login");
+  }
+
+  next();
 });
 
 export default router;

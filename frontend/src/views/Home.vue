@@ -1,5 +1,6 @@
 <template>
-  <div class="container mt-5 text-center">
+  <HomeNavbar />
+    <div class="container mt-5 flex-grow-1 text-center">
     <h1>Welcome to Placement Portal</h1>
 
     <router-link to="/login" class="btn btn-primary m-2">
@@ -15,3 +16,9 @@
     </router-link>
   </div>
 </template>
+
+<script setup>
+
+import HomeNavbar from "../components/HomeNavbar.vue"
+
+</script>

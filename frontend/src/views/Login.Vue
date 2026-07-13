@@ -1,5 +1,8 @@
 <template>
-    <div class="container mt-5">
+
+  <HomeNavbar />
+
+    <div class="container mt-5 flex-grow-1">
   
       <div class="row justify-content-center">
   
@@ -61,13 +64,16 @@
       </div>
   
     </div>
+
   </template>
   
   <script setup>
-  
+
+  import HomeNavbar from "../components/HomeNavbar.vue"
   import { ref } from "vue"
   import axios from "axios"
   import { useRouter } from "vue-router"
+  
   
   const email = ref("")
   const password = ref("")
