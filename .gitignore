@@ -55,4 +55,4 @@ uploads/resumes/*
 uploads/offers/*
 uploads/exports/*
 
-celerybeat-schedule*
+celerybeat-schedule*1

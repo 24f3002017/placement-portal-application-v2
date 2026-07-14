@@ -80,16 +80,18 @@
   
           </div>
   
-          <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
 
 <h4 class="mb-0">My Job Postings</h4>
 
+<h4>
 <button
     class="btn btn-success"
     @click="exportCSV"
 >
     Export Application History (CSV)
 </button>
+</h4>
 
 </div>
 

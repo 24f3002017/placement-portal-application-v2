@@ -8,6 +8,7 @@ from flask import send_from_directory
 import os
 from werkzeug.utils import secure_filename
 from flask_mail import Mail, Message
+from flask_caching import Cache
  
 ADMIN_EMAIL = "admin@gmail.com"
 ADMIN_PASSWORD = "admin123"
@@ -22,6 +23,11 @@ app.config["MAIL_USE_TLS"] = True
 app.config["MAIL_USERNAME"] = "placement.portal.mad2.proj@gmail.com"
 app.config["MAIL_PASSWORD"] = "wesw iapn avyd hzkr"
 app.config["MAIL_DEFAULT_SENDER"] = "placement.portal.mad2.proj@gmail.com"
+app.config["CACHE_TYPE"] = "RedisCache"
+app.config["CACHE_REDIS_URL"] = "redis://localhost:6379/0"
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300
+
+cache = Cache(app)
 
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -315,6 +321,7 @@ def admin_dashboard():
 
 @app.route("/api/admin/companies", methods=["GET"])
 @jwt_required()
+@cache.cached(timeout=300)
 def get_companies():
 
     status = check_user_status()
@@ -407,6 +414,9 @@ def approve_company(id):
     company = Company.query.get_or_404(id)
     company.approval_status = "approved"
     db.session.commit()
+
+    cache.clear()
+
     return jsonify({"message": "Company approved"}), 200
 
 @app.route("/api/admin/company/<int:id>/reject", methods=["PUT"])
@@ -421,6 +431,9 @@ def reject_company(id):
     company = Company.query.get_or_404(id)
     company.approval_status = "rejected"
     db.session.commit()
+
+    cache.clear()
+
     return jsonify({"message": "Company rejected"}), 200
 
 @app.route("/api/admin/company/<int:id>/activate", methods=["PUT"])
@@ -437,6 +450,8 @@ def activate_company(id):
     company.user.status = "active"
 
     db.session.commit()
+
+    cache.clear()
 
     return jsonify({"message": "Company activated"}), 200
 
@@ -455,6 +470,8 @@ def deactivate_company(id):
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({"message": "Company deactivated"}), 200
 
 @app.route("/api/admin/company/<int:id>/blacklist", methods=["PUT"])
@@ -471,6 +488,8 @@ def blacklist_company(id):
     company.user.status = "blacklisted"
 
     db.session.commit()
+
+    cache.clear()
 
     return jsonify({"message": "Company blacklisted"}), 200
 
@@ -495,10 +514,13 @@ def delete_company(id):
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({"message": "Company deleted"}), 200
 
 @app.route("/api/admin/students", methods=["GET"])
 @jwt_required()
+@cache.cached(timeout=300)
 def get_students():
 
     status = check_user_status()
@@ -569,6 +591,8 @@ def activate_student(id):
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({
         "message": "Student activated"
     }), 200
@@ -590,6 +614,8 @@ def deactivate_student(id):
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({
         "message": "Student deactivated"
     }), 200
@@ -610,6 +636,8 @@ def blacklist_student(id):
     user.status = "blacklisted"
 
     db.session.commit()
+
+    cache.clear()
 
     return jsonify({
         "message": "Student blacklisted"
@@ -638,6 +666,8 @@ def delete_student(id):
     db.session.delete(user)
 
     db.session.commit()
+
+    cache.clear()
 
     return jsonify({
         "message": "Student deleted successfully."
@@ -719,6 +749,8 @@ def approve_job(id):
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({
         "message": "Job approved successfully."
     }), 200
@@ -739,6 +771,8 @@ def reject_job(id):
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({
         "message": "Job rejected."
     }), 200
@@ -757,6 +791,8 @@ def delete_job(id):
     db.session.delete(job)
 
     db.session.commit()
+
+    cache.clear()
 
     return jsonify({
         "message": "Job deleted successfully."
@@ -924,6 +960,8 @@ def create_job():
 
     db.session.add(job)
     db.session.commit()
+
+    cache.clear()
 
     return jsonify(
         {"message": "Job created successfully"}
@@ -1338,6 +1376,8 @@ def update_company_profile():
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({
 
         "message": "Profile updated successfully."
@@ -1465,6 +1505,7 @@ def student_dashboard():
 
 @app.route("/api/student/jobs", methods=["GET"])
 @jwt_required()
+@cache.cached(timeout=300)
 def student_jobs():
 
     status = check_user_status()
@@ -1754,6 +1795,8 @@ def update_student_profile():
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({
 
         "message":"Profile updated successfully."
@@ -1846,6 +1889,8 @@ def admin_update_student(id):
 
     db.session.commit()
 
+    cache.clear()
+
     return jsonify({
 
         "message": "Student updated successfully."
@@ -1907,6 +1952,8 @@ def admin_update_company(id):
     company.approval_status = data.get("approval_status")
 
     db.session.commit()
+
+    cache.clear()
 
     return jsonify({
 

@@ -188,3 +188,32 @@ Fixed by generating the CSV first, attaching it to the email and then sending it
 
 6) Interview reminder and deadline reminder were not triggering during testing.
 Fixed by temporarily changing the schedule time, restarting Celery Beat and verifying email delivery.
+
+Milestone 8
+
+In this part I implemented Redis caching to improve the performance of frequently used APIs and reduced unnecessary database queries.
+
+1) configured Flask-Caching with Redis
+2) integrated Redis cache with the Flask backend
+3) cached student jobs API
+4) cached admin companies API
+5) cached admin students API
+6) configured cache timeout
+7) implemented automatic cache clearing after create/update/delete operations
+8) refreshed cache after company and job approval updates
+9) tested Redis caching successfully
+10) verified updated data after cache invalidation
+
+Issues Encountered and Fixes
+
+1) Redis cache was not working because the Redis server was not running.
+Fixed by starting the Redis service using Homebrew.
+
+2) Updated data was not appearing after database changes.
+Fixed by clearing the cache after create, update, approve, reject and delete operations.
+
+3) Student dashboard was showing old job data after updates.
+Fixed by refreshing the cached API after database modifications.
+
+4) Company dashboard UI appeared differently in Safari and Chrome.
+Fixed by adjusting the Bootstrap navbar breakpoint and refreshing browser cache.
