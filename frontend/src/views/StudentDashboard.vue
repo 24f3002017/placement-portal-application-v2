@@ -72,7 +72,24 @@
 
       </div>
 
+
       <div class="row mb-3">
+
+        <div class="mb-2 text-end">
+
+<button
+
+    class="btn btn-success"
+
+    @click="exportCSV"
+
+>
+
+    Export Application History (CSV)
+
+</button>
+
+          </div>
 
         <div class="col-md-8">
 
@@ -101,6 +118,8 @@
             <option value="rejected">Rejected</option>
 
           </select>
+
+
 
         </div>
 
@@ -255,6 +274,52 @@ async function fetchJobs() {
         console.log(error.response)
 
     }
+
+}
+
+async function exportCSV(){
+
+try{
+
+    const token = localStorage.getItem("token")
+
+    const response = await axios.post(
+
+        "http://127.0.0.1:5000/api/student/export-csv",
+
+        {},
+
+        {
+
+            headers:{
+
+                Authorization:`Bearer ${token}`
+
+            }
+
+        }
+
+    )
+
+    alert(response.data.message)
+
+}
+
+catch(error){
+
+    if(error.response){
+
+        alert(error.response.data.message)
+
+    }
+
+    else{
+
+        alert("Server Error")
+
+    }
+
+}
 
 }
 

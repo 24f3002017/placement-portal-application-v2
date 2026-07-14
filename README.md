@@ -150,3 +150,41 @@ This milestone was already completed during the implementation of previous miles
 Since all the core requirements of this milestone were already satisfied, no additional implementation was required. After verifying that every feature worked correctly through end-to-end testing, I am proceeding to the next milestone.
 
 Milestone 6 required no additional code changes. Moving to Milestone 7.
+
+Milestone 7
+
+In this part I implemented background jobs using Celery, Redis and Flask-Mail. The application now supports asynchronous CSV exports, scheduled email reminders and monthly placement reports.
+
+1) configured Celery with Redis
+2) configured Celery Beat scheduler
+3) student application history CSV export
+4) company application history CSV export
+5) asynchronous CSV export with email attachment
+6) interview scheduled email notification
+7) daily interview reminder email
+8) daily application deadline reminder email
+9) monthly placement report for companies
+10) monthly placement report for admin
+11) HTML email report generation
+12) scheduled background jobs using Celery Beat
+13) tested all scheduled and asynchronous tasks successfully
+
+Issues Encountered and Fixes
+
+1) Celery tasks were not executing because the worker was not running.
+Fixed by starting the Celery worker with Redis.
+
+2) Scheduled jobs were not running automatically.
+Fixed by configuring Celery Beat and verifying the scheduled tasks.
+
+3) Duplicate emails were being received during testing.
+Fixed by disabling Flask auto reloader using `use_reloader=False` and restarting the worker and beat.
+
+4) Monthly report was initially sent only to companies.
+Fixed by adding a separate admin monthly report email.
+
+5) CSV export was not sending the generated file correctly.
+Fixed by generating the CSV first, attaching it to the email and then sending it asynchronously.
+
+6) Interview reminder and deadline reminder were not triggering during testing.
+Fixed by temporarily changing the schedule time, restarting Celery Beat and verifying email delivery.

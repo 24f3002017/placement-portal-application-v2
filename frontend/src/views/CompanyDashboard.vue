@@ -80,12 +80,19 @@
   
           </div>
   
-          <hr class="my-5">
-  
-          <h4 class="mb-3">
-              My Job Postings
-          </h4>
-  
+          <div class="d-flex justify-content-between align-items-center mb-3">
+
+<h4 class="mb-0">My Job Postings</h4>
+
+<button
+    class="btn btn-success"
+    @click="exportCSV"
+>
+    Export Application History (CSV)
+</button>
+
+</div>
+
           <table class="table table-bordered">
   
               <thead>
@@ -179,6 +186,34 @@ const router = useRouter()
 
 const dashboard = ref({})
 const recentJobs = ref([])
+
+const exportCSV = async () => {
+
+try {
+
+    await axios.get(
+        "http://127.0.0.1:5000/api/company/export-csv",
+        {
+            headers: {
+                Authorization:
+                    "Bearer " + localStorage.getItem("token")
+            }
+        }
+    )
+
+    alert(
+        "CSV export started. You will receive an email shortly."
+    )
+
+}
+
+catch (err) {
+
+    alert(err.response.data.message)
+
+}
+
+}
 
 async function getDashboard() {
 

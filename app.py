@@ -7,7 +7,8 @@ from datetime import datetime , date
 from flask import send_from_directory
 import os
 from werkzeug.utils import secure_filename
-
+from flask_mail import Mail, Message
+ 
 ADMIN_EMAIL = "admin@gmail.com"
 ADMIN_PASSWORD = "admin123"
 
@@ -15,12 +16,19 @@ app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "placement_portal_secret_key"
 app.config["JWT_SECRET_KEY"] = "placement_portal_jwt_secret"
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = "placement.portal.mad2.proj@gmail.com"
+app.config["MAIL_PASSWORD"] = "wesw iapn avyd hzkr"
+app.config["MAIL_DEFAULT_SENDER"] = "placement.portal.mad2.proj@gmail.com"
 
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 CORS(app)
 jwt = JWTManager(app)
+mail = Mail(app)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -1168,7 +1176,24 @@ def update_application_status(id):
 
     application.interview_location = data.get("interview_location")
 
+    student = Student.query.get(application.student_id)
+
     db.session.commit()
+
+    if application.interview_date:
+        from celery_worker import send_interview_email
+        
+        send_interview_email.delay(
+            student.user.email,
+            student.first_name + " " + student.last_name,
+            company.name,
+            job.title,
+            application.interview_date.strftime("%d-%m-%Y"),
+            application.interview_time,
+            application.interview_mode,
+            application.interview_location
+
+    )
 
     return jsonify({
         "message": "Application status updated successfully."
@@ -1913,6 +1938,87 @@ def view_offer_letter(filename):
         filename
 
     )
+
+@app.route("/api/student/export-csv", methods=["POST"])
+@jwt_required()
+def export_student_csv_route():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    from celery_worker import export_student_csv
+
+    export_student_csv.delay(student.id)
+
+    return jsonify({
+        "message": "CSV export started. You will receive an email once it is ready."
+    }), 200
+
+@app.route("/api/company/export-csv", methods=["GET"])
+@jwt_required()
+def company_export_csv():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(
+        user_id=user_id
+    ).first()
+
+    if not company:
+        return jsonify({
+            "message": "Company not found"
+        }), 404
+
+    from celery_worker import export_company_csv
+
+    export_company_csv.delay(company.id)
+
+    return jsonify({
+        "message": "CSV export started successfully."
+    }), 200
+
+
+#Route used for testing 
+# @app.route("/test-deadline-reminder")   
+# def test_deadline_reminder():
+
+#     from celery_worker import application_deadline_reminder
+
+#     application_deadline_reminder.delay()
+
+#     return "Deadline reminder started."
+
+# @app.route("/test-interview-reminder")
+# def test_interview_reminder():
+
+#     from celery_worker import daily_interview_reminder
+
+#     daily_interview_reminder.delay()
+
+#     return "Interview reminder started."
+
+# @app.route("/test-monthly-report")
+# def test_monthly_report():
+
+#     from celery_worker import monthly_report
+
+#     monthly_report.delay()
+
+#     return "Monthly report started."
 
 if __name__ == "__main__":
     app.run(debug=True)
