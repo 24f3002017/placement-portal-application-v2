@@ -50,3 +50,6 @@ dist/
 # Misc
 *.swp
 *.swo
+
+uploads/resumes/*
+uploads/offers/*
