@@ -4,9 +4,17 @@
       <AdminNavbar />
   
       <div class="container my-5 flex-grow-1">
-  
-        <h2 class="text-center mb-4">Student Details</h2>
-  
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="mb-0">
+            Student Details
+          </h2>
+          
+          <button
+          class="btn btn-warning"
+          @click="$router.push('/admin/student/' + student.id + '/edit')">
+          Edit
+        </button>
+      </div>
         <div class="card shadow-sm">
   
           <div class="card-body">

@@ -16,7 +16,7 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "placement_portal_secret_key"
 app.config["JWT_SECRET_KEY"] = "placement_portal_jwt_secret"
 
-UPLOAD_FOLDER = "uploads/resumes"
+UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 CORS(app)
@@ -103,6 +103,7 @@ def student_register():
         resume_file.save(
             os.path.join(
                 app.config["UPLOAD_FOLDER"],
+                "resumes",
                 resume_filename
             )
         )    
@@ -1055,7 +1056,7 @@ def company_job_applicants(id):
 @app.route("/api/company/application/<int:id>", methods=["GET"])
 @jwt_required()
 def company_application_details(id):
-
+  
     status = check_user_status()
 
     if status:
@@ -1173,12 +1174,744 @@ def update_application_status(id):
         "message": "Application status updated successfully."
     }), 200
 
+@app.route("/api/company/application/<int:id>/select", methods=["POST"])
+@jwt_required()
+def select_candidate(id):
+
+    status = check_user_status()
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message":"Company not found"}),404
+
+    application = Application.query.get_or_404(id)
+
+    if application.company_id != company.id:
+        return jsonify({"message":"Unauthorized"}),403
+
+    package = request.form.get("package")
+
+    offer_letter = request.files.get("offer_letter")
+
+    if not package:
+        return jsonify({"message":"Package is required"}),400
+
+    if not offer_letter:
+        return jsonify({"message":"Offer letter is required"}),400
+
+    if not offer_letter.filename.lower().endswith(".pdf"):
+        return jsonify({"message":"Only PDF files are allowed"}),400
+
+    filename = secure_filename(
+        f"{application.student_id}_{offer_letter.filename}"
+    )
+
+    offer_letter.save(
+
+        os.path.join(
+
+            app.config["UPLOAD_FOLDER"],
+
+            "offers",
+
+            filename
+
+        )
+
+    )
+
+    application.status = "selected"
+
+    placement = Placement(
+
+        application_id = application.id,
+
+        student_id = application.student_id,
+
+        company_id = application.company_id,
+
+        job_position_id = application.job_position_id,
+
+        package = int(package),
+
+        offer_letter = filename
+
+    )
+
+    db.session.add(placement)
+
+    db.session.commit()
+
+    return jsonify({
+
+        "message":"Candidate selected successfully."
+
+    }),200
+
+@app.route("/api/company/profile", methods=["GET"])
+@jwt_required()
+def company_profile():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    user = User.query.get(user_id)
+
+    return jsonify({
+
+        "name": company.name,
+
+        "email": user.email,
+
+        "industry": company.industry,
+
+        "website": company.website,
+
+        "hr_contact": company.hr_contact,
+
+        "approval_status": company.approval_status
+
+    }), 200
+
+@app.route("/api/company/profile", methods=["PUT"])
+@jwt_required()
+def update_company_profile():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    company = Company.query.filter_by(user_id=user_id).first()
+
+    if not company:
+        return jsonify({"message": "Company not found"}), 404
+
+    data = request.json
+
+    company.website = data.get("website")
+
+    company.hr_contact = data.get("hr_contact")
+
+    company.industry = data.get("industry")
+
+    db.session.commit()
+
+    return jsonify({
+
+        "message": "Profile updated successfully."
+
+    }), 200
+
+@app.route("/api/student/dashboard", methods=["GET"])
+@jwt_required()
+def student_dashboard():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    if not student:
+        return jsonify({
+            "message": "Student not found"
+        }), 404
+
+    available_jobs = JobPosition.query.filter_by(
+        job_approval_status="approved",
+        current_status="active"
+    ).count()
+
+    applied_jobs = Application.query.filter_by(
+        student_id=student.id
+    ).count()
+
+    selected = Application.query.filter_by(
+        student_id=student.id,
+        status="selected"
+    ).count()
+
+    rejected = Application.query.filter_by(
+        student_id=student.id,
+        status="rejected"
+    ).count()
+
+    notifications = []
+
+    applications = Application.query.filter_by(
+        student_id=student.id
+    ).all()
+
+    for application in applications:
+
+        company = Company.query.get(application.company_id)
+
+        if application.status == "selected":
+
+            notifications.append({
+
+                "id": application.id,
+
+                "message": f"🏆 Congratulations! You have been selected by {company.name}."
+
+            })
+
+        elif application.interview_date:
+
+            message = (
+                f"📅 Interview scheduled by {company.name} on "
+                f"{application.interview_date.strftime('%d-%m-%Y')}"
+            )
+
+            if application.interview_time:
+                message += f" at {application.interview_time}"
+
+            if application.interview_mode:
+                message += f" ({application.interview_mode})"
+
+            notifications.append({
+
+                "id": application.id,
+
+                "message": message
+
+            })
+
+        elif application.status == "shortlisted":
+
+            notifications.append({
+
+                "id": application.id,
+
+                "message": f"🎉 You have been shortlisted by {company.name}."
+
+            })
+
+        elif application.status == "rejected":
+
+            notifications.append({
+
+                "id": application.id,
+
+                "message": f"❌ Your application at {company.name} has been rejected."
+
+            })
+
+    return jsonify({
+
+        "student": {
+
+            "first_name": student.first_name
+
+        },
+
+        "summary": {
+
+            "available_jobs": available_jobs,
+            "applied_jobs": applied_jobs,
+            "selected": selected,
+            "rejected": rejected
+
+        },
+
+        "notifications": notifications
+
+    }), 200
+
+@app.route("/api/student/jobs", methods=["GET"])
+@jwt_required()
+def student_jobs():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    search = request.args.get("search", "")
+    filter = request.args.get("filter", "")
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    jobs = JobPosition.query.filter_by(
+        job_approval_status="approved",
+        current_status="active"
+    ).all()
+
+    result = []
+
+    for job in jobs:
+
+        company = Company.query.get(job.company_id)
+
+        application = Application.query.filter_by(
+            student_id=student.id,
+            job_position_id=job.id
+        ).first()
+
+        if search:
+
+            if search.lower() not in company.name.lower() and \
+               search.lower() not in job.title.lower():
+
+                continue
+
+        if filter == "applied":
+
+            if not application:
+                continue
+
+        elif filter == "not_applied":
+
+            if application:
+                continue
+
+        elif filter:
+
+            if not application:
+                continue
+
+            if application.status != filter:
+                continue
+
+        result.append({
+
+            "id": job.id,
+
+            "company": company.name,
+
+            "title": job.title,
+
+            "salary": job.salary,
+
+            "deadline": job.deadline.strftime("%d-%m-%Y"),
+
+            "status": job.current_status
+
+        })
+
+    return jsonify(result), 200
+
+@app.route("/api/student/job/<int:id>", methods=["GET"])
+@jwt_required()
+def student_job_details(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    if not student:
+        return jsonify({"message":"Student not found"}),404
+
+    job = JobPosition.query.get_or_404(id)
+
+    company = Company.query.get(job.company_id)
+
+    application = Application.query.filter_by(
+        student_id=student.id,
+        job_position_id=job.id
+    ).first()
+
+    placement = None 
+    if application:
+        placement = Placement.query.filter_by(
+            application_id=application.id
+        ).first()
+
+    return jsonify({
+
+        "id":job.id,
+
+        "company":company.name,
+
+        "title":job.title,
+
+        "description":job.description,
+
+        "eligibility":job.eligibility,
+
+        "salary":job.salary,
+
+        "skills_required":job.skills_req,
+
+        "experience_required":job.exp_req,
+
+        "deadline":job.deadline.strftime("%d-%m-%Y"),
+
+        "already_applied": application is not None,
+
+        "application_status": application.status if application else None,
+
+        "feedback": application.feedback if application else "",
+
+        "interview_date": application.interview_date if application else None,
+
+        "interview_time": application.interview_time if application else None,
+
+        "interview_mode": application.interview_mode if application else "",
+
+        "interview_location": application.interview_location if application else "",
+
+        "package": placement.package if placement else None,
+
+        "offer_letter": placement.offer_letter if placement else None,
+
+        "status": application.status if application else None
+
+    }),200
+
+@app.route("/api/student/job/<int:id>/apply", methods=["POST"])
+@jwt_required()
+def apply_job(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    job = JobPosition.query.get_or_404(id)
+
+    existing = Application.query.filter_by(
+
+        student_id=student.id,
+
+        job_position_id=job.id
+
+    ).first()
+
+    if existing:
+
+        return jsonify({
+
+            "message":"You have already applied."
+
+        }),400
+
+    application = Application(
+
+        student_id=student.id,
+
+        company_id=job.company_id,
+
+        job_position_id=job.id,
+
+        status="applied"
+
+    )
+
+    db.session.add(application)
+
+    db.session.commit()
+
+    return jsonify({
+
+        "message":"Application submitted successfully."
+
+    }),201
+
+@app.route("/api/student/profile", methods=["GET"])
+@jwt_required()
+def student_profile():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    user = User.query.get(user_id)
+
+    return jsonify({
+
+        "first_name": student.first_name,
+        "last_name": student.last_name,
+        "roll_no": student.roll_no,
+        "email": user.email,
+        "cgpa": student.cgpa,
+        "skills": student.skills,
+        "education": student.education,
+        "experience": student.experience,
+        "resume": student.resume
+
+    }), 200
+
+@app.route("/api/student/profile", methods=["PUT"])
+@jwt_required()
+def update_student_profile():
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    user_id = get_jwt_identity()
+
+    student = Student.query.filter_by(user_id=user_id).first()
+
+    if not student:
+        return jsonify({"message":"Student not found"}),404
+
+    data = request.form
+
+    student.skills = data.get("skills")
+
+    student.education = data.get("education")
+
+    student.experience = data.get("experience")
+
+    resume_file = request.files.get("resume")
+
+    if resume_file:
+
+        if not resume_file.filename.lower().endswith(".pdf"):
+
+            return jsonify({
+                "message":"Only PDF resumes are allowed."
+            }),400
+
+        filename = secure_filename(
+
+            f"{student.roll_no}_{resume_file.filename}"
+
+        )
+
+        resume_file.save(
+
+            os.path.join(
+
+                app.config["UPLOAD_FOLDER"],
+
+                "resumes",
+
+                filename
+
+            )
+
+        )
+
+        student.resume = filename
+
+    db.session.commit()
+
+    return jsonify({
+
+        "message":"Profile updated successfully."
+
+    }),200
+
+@app.route("/api/admin/student/<int:id>/edit", methods=["GET"])
+@jwt_required()
+def admin_get_student_edit(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    student = Student.query.get_or_404(id)
+
+    user = User.query.get(student.user_id)
+
+    return jsonify({
+
+        "id": student.id,
+
+        "first_name": student.first_name,
+
+        "last_name": student.last_name,
+
+        "roll_no": student.roll_no,
+
+        "email": user.email,
+
+        "cgpa": student.cgpa,
+
+        "skills": student.skills,
+
+        "education": student.education,
+
+        "experience": student.experience,
+
+        "resume": student.resume
+
+    }), 200
+
+@app.route("/api/admin/student/<int:id>/edit", methods=["PUT"])
+@jwt_required()
+def admin_update_student(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    student = Student.query.get_or_404(id)
+
+    student.first_name = request.form.get("first_name")
+
+    student.last_name = request.form.get("last_name")
+
+    student.roll_no = request.form.get("roll_no")
+
+    student.cgpa = request.form.get("cgpa")
+
+    student.skills = request.form.get("skills")
+
+    student.education = request.form.get("education")
+
+    student.experience = request.form.get("experience")
+
+    resume = request.files.get("resume")
+
+    if resume:
+
+        filename = secure_filename(resume.filename)
+
+        resume.save(
+
+            os.path.join(
+
+                app.config["UPLOAD_FOLDER"],
+
+                "resumes",
+
+                filename
+
+            )
+
+        )
+
+        student.resume = filename
+
+    db.session.commit()
+
+    return jsonify({
+
+        "message": "Student updated successfully."
+
+    }), 200
+
+@app.route("/api/admin/company/<int:id>/edit", methods=["GET"])
+@jwt_required()
+def admin_get_company_edit(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    company = Company.query.get_or_404(id)
+
+    user = User.query.get(company.user_id)
+
+    return jsonify({
+
+        "id": company.id,
+
+        "name": company.name,
+
+        "email": user.email,
+
+        "industry": company.industry,
+
+        "website": company.website,
+
+        "hr_contact": company.hr_contact,
+
+        "approval_status": company.approval_status
+
+    }), 200
+
+@app.route("/api/admin/company/<int:id>/edit", methods=["PUT"])
+@jwt_required()
+def admin_update_company(id):
+
+    status = check_user_status()
+
+    if status:
+        return status
+
+    company = Company.query.get_or_404(id)
+
+    data = request.json
+
+    company.name = data.get("name")
+
+    company.industry = data.get("industry")
+
+    company.website = data.get("website")
+
+    company.hr_contact = data.get("hr_contact")
+
+    company.approval_status = data.get("approval_status")
+
+    db.session.commit()
+
+    return jsonify({
+
+        "message": "Company updated successfully."
+
+    }), 200
+
 @app.route("/uploads/resumes/<filename>")
 def view_resume(filename):
 
     return send_from_directory(
-        app.config["UPLOAD_FOLDER"],
+        os.path.join(
+            app.config["UPLOAD_FOLDER"],
+            "resumes"
+        ),
         filename
+    )
+
+@app.route("/uploads/offers/<filename>")
+def view_offer_letter(filename):
+
+    return send_from_directory(
+
+        os.path.join(
+            app.config["UPLOAD_FOLDER"],
+            "offers"
+        ),
+
+        filename
+
     )
 
 if __name__ == "__main__":

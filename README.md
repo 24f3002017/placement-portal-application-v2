@@ -97,3 +97,48 @@ Issues Encountered and Fixes
 
 6) Company routes were accessible without proper authorization checks.
    Fixed by verifying the logged-in company using JWT before returning job and applicant details.
+
+Milestone 5
+
+In this part I implemented the complete student module and completed the end-to-end placement workflow. Students can manage their profiles, apply for jobs, receive interview notifications, download offer letters, while Admin can edit both student and company details.
+
+1) student dashboard with summary cards
+2) job search and filtering
+3) student job details page
+4) apply for jobs
+5) prevent duplicate job applications
+6) application status tracking
+7) notification system for shortlisted, interview, selected and rejected status
+8) interview schedule display
+9) student profile page
+10) student edit profile page
+11) resume update support
+12) company profile page
+13) company edit profile page
+14) offer letter download for selected students
+15) automatic placement record creation
+16) admin edit student page
+17) admin edit company page
+
+Issues Encountered and Fixes
+
+1) Student dashboard notifications were not updating correctly.
+   Fixed by generating notifications dynamically from the Application status and interview details.
+
+2) Duplicate job applications were possible.
+   Fixed by checking existing applications before allowing a new application.
+
+3) Interview schedule was not visible to students.
+   Fixed by returning interview details from the backend and displaying them on the Job Details page.
+
+4) Offer letter could not be downloaded.
+   Fixed by creating a separate uploads/offers folder and serving files through Flask.
+
+5) Placement records were not created after selection.
+   Fixed by automatically creating a Placement record when the company confirms candidate selection.
+
+6) Admin could not update student and company information.
+   Fixed by implementing separate Admin Edit Student and Admin Edit Company pages with dedicated backend APIs.
+
+7) Resume viewing returned 404 errors.
+   Fixed by correcting the upload path and serving resumes using send_from_directory().

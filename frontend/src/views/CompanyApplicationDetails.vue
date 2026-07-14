@@ -184,27 +184,81 @@
                                 class="form-control mb-3"
                                 v-model="interviewLocation">
     
-                            <button
-                                class="btn btn-primary"
-                                @click="scheduleInterview">
-    
-                                Schedule Interview
-    
-                            </button>
-    
-                        </div>
-    
-                    </div>
-    
-                    <div class="text-center mt-4">
-    
-                        <button
-                            class="btn btn-secondary"
-                            @click="$router.back()">
-    
-                            Back
-    
-                        </button>
+                                <button
+    class="btn btn-primary"
+    @click="scheduleInterview">
+
+    Schedule Interview
+
+</button>
+
+</div>
+
+</div>
+
+<div
+    class="card mt-4"
+    v-if="application.interview_date && application.status!='selected'"
+>
+
+    <div class="card-header text-center">
+
+        <h5>Select Candidate</h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <label class="form-label">
+
+            Package (LPA)
+
+        </label>
+
+        <input
+            type="number"
+            class="form-control mb-3"
+            v-model="packageOffered"
+            placeholder="Example: 18"
+        >
+
+        <label class="form-label">
+
+            Offer Letter (PDF)
+
+        </label>
+
+        <input
+            type="file"
+            class="form-control mb-3"
+            accept=".pdf"
+            @change="handleOfferLetter"
+        >
+
+        <button
+            class="btn btn-success"
+            @click="selectCandidate"
+        >
+
+            Confirm Selection
+
+        </button>
+
+    </div>
+
+</div>
+
+<div class="text-center mt-4">
+
+    <button
+        class="btn btn-secondary"
+        @click="$router.back()">
+
+        Back
+
+    </button>
+
+</div>
     
                     </div>
     
@@ -213,8 +267,6 @@
             </div>
     
         </div>
-    
-    </div>
     
     </template>
 
@@ -237,6 +289,18 @@ const interviewDate = ref("")
 const interviewTime = ref("")
 const interviewMode = ref("Online")
 const interviewLocation = ref("")
+
+const showSelectForm = ref(false)
+
+const offerLetter = ref(null)
+
+const packageOffered = ref("")
+
+function handleOfferLetter(event){
+
+    offerLetter.value = event.target.files[0]
+
+}
 
 async function fetchApplication() {
 
@@ -392,6 +456,68 @@ async function scheduleInterview() {
         alert(error.response.data.message)
 
     }
+
+}
+
+async function selectCandidate(){
+
+if(!packageOffered.value){
+
+    alert("Enter package.")
+
+    return
+
+}
+
+if(!offerLetter.value){
+
+    alert("Upload offer letter.")
+
+    return
+
+}
+
+try{
+
+    const token = localStorage.getItem("token")
+
+    const formData = new FormData()
+
+    formData.append("package", packageOffered.value)
+
+    formData.append("offer_letter", offerLetter.value)
+
+    const response = await axios.post(
+
+        `http://127.0.0.1:5000/api/company/application/${route.params.id}/select`,
+
+        formData,
+
+        {
+
+            headers:{
+
+                Authorization:`Bearer ${token}`,
+
+                "Content-Type":"multipart/form-data"
+
+            }
+
+        }
+
+    )
+
+    alert(response.data.message)
+
+    fetchApplication()
+
+}
+
+catch(error){
+
+    alert(error.response.data.message)
+
+}
 
 }
 

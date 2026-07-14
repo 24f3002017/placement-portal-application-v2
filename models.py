@@ -102,5 +102,7 @@ class Placement(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id') , nullable = False)
     job_position_id = db.Column(db.Integer, db.ForeignKey('job_position.id') , nullable = False)
     placement_date = db.Column(db.Date, default=lambda: datetime.utcnow().date())
+    offer_letter = db.Column(db.String(200))
+    package = db.Column(db.Integer)
 
     application = db.relationship('Application')

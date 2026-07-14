@@ -22,6 +22,7 @@
 
                 <button
                     class="btn btn-light btn-sm me-2"
+                    @click="$router.push('/student/profile')"
                 >
                     Profile
                 </button>

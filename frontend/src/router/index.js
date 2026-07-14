@@ -18,7 +18,14 @@ import PlacementManagement from "../views/PlacementManagement.vue";
 import CreateJob from "../views/CreateJob.vue";
 import CompanyJobDetails from "../views/CompanyJobDetails.vue";
 import CompanyApplications from "../views/CompanyApplications.vue";
-import CompanyApplicationDetails from "../views/CompanyApplicationDetails.vue"
+import CompanyApplicationDetails from "../views/CompanyApplicationDetails.vue";
+import StudentJobDetails from "../views/StudentJobDetails.vue";
+import StudentProfile from "../views/StudentProfile.vue";
+import StudentEditProfile from "../views/StudentEditProfile.vue";
+import CompanyProfile from "../views/CompanyProfile.vue";
+import CompanyEditProfile from "../views/CompanyEditProfile.vue";
+import AdminEditStudent from "../views/AdminEditStudent.vue";
+import AdminEditCompany from "../views/AdminEditCompany.vue"
 
 const routes = [
   {
@@ -114,6 +121,47 @@ const routes = [
   {
     path: "/company/application/:id",
     component: CompanyApplicationDetails
+  },
+
+  {
+    path: "/student/job/:id",
+    component: StudentJobDetails
+  },
+
+  {
+    path: "/student/profile",
+    name: "StudentProfile",
+    component: StudentProfile
+  },
+
+  {
+    path: "/student/profile/edit",
+    name: "StudentEditProfile",
+    component: StudentEditProfile
+  },
+
+  {
+    path: "/company/profile",
+    name: "CompanyProfile",
+    component: CompanyProfile
+  },
+
+  {
+    path: "/company/profile/edit",
+    name: "CompanyEditProfile",
+    component: CompanyEditProfile
+  },
+
+  {
+    path: "/admin/student/:id/edit",
+    name: "AdminEditStudent",
+    component: AdminEditStudent
+  },
+
+  {
+    path: "/admin/company/:id/edit",
+    name: "AdminEditCompany",
+    component: AdminEditCompany
   }
 
 ];
