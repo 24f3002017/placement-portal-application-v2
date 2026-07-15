@@ -5,4 +5,8 @@ import router from "./router";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
+import { registerSW } from "virtual:pwa-register";
+
+registerSW({ immediate: true });
+
 createApp(App).use(router).mount("#app");

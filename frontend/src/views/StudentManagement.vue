@@ -39,6 +39,8 @@
 
         </div>
 
+        <div>
+
         <table class="table table-bordered">
 
             <thead>
@@ -99,6 +101,8 @@
             </tbody>
 
         </table>
+
+        </div>
 
         <div class="mt-3">
 

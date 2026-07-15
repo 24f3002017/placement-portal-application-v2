@@ -124,6 +124,7 @@
         </div>
 
       </div>
+      <div>
 
       <table class="table table-striped table-hover">
 
@@ -172,6 +173,8 @@
         </tbody>
 
       </table>
+
+    </div>
 
     </div>
 

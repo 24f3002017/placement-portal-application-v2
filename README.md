@@ -217,3 +217,29 @@ Fixed by refreshing the cached API after database modifications.
 
 4) Company dashboard UI appeared differently in Safari and Chrome.
 Fixed by adjusting the Bootstrap navbar breakpoint and refreshing browser cache.
+
+Milestone 9 - OPTIONAL
+
+In this part I implemented Progressive Web App (PWA) support and improved the user interface for better responsiveness across different screen sizes.
+
+1) configured Vite PWA plugin
+2) created web app manifest
+3) generated 192x192 and 512x512 application icons
+4) configured service worker for offline support
+5) enabled application installation (Add to Home Screen)
+6) verified PWA installation on desktop browser
+7) tested PWA installation on mobile browser
+8) improved responsive layout using Bootstrap
+9) tested application on different mobile screen sizes
+10) maintained consistent UI across desktop and mobile devices
+
+Issues Encountered and Fixes
+
+1) PWA install option was not appearing while running the development server.
+Fixed by building the project and testing using the production preview server.
+
+2) Application icon was not displaying correctly.
+Fixed by generating proper 192x192 and 512x512 PNG icons and configuring them in the manifest.
+
+3) Mobile layout was not displaying properly on smaller screens.
+Fixed by using Bootstrap responsive classes.
