@@ -1505,7 +1505,6 @@ def student_dashboard():
 
 @app.route("/api/student/jobs", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=300)
 def student_jobs():
 
     status = check_user_status()
